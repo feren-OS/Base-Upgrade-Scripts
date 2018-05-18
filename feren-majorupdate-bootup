@@ -1,0 +1,239 @@
+#!/bin/bash
+
+#chvt 2
+clear
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
+
+echo "
+   __                       ____   _____   __  __       _              _    _           _       _       
+  / _|                     / __ \ / ____| |  \/  |     (_)            | |  | |         | |     | |      
+ | |_ ___ _ __ ___ _ __   | |  | | (___   | \  / | __ _ _  ___  _ __  | |  | |_ __   __| | __ _| |_ ___
+ |  _/ _ \ |__/ _ \ |_ \  | |  | |\___ \  | |\/| |/ _| | |/ _ \| |__| | |  | | |_ \ / _| |/ _| | __/ _ \ \
+
+ | ||  __/ | |  __/ | | | | |__| |____) | | |  | | (_| | | (_) | |    | |__| | |_) | (_| | (_| | ||  __/
+ |_| \___|_|  \___|_| |_|  \____/|_____/  |_|  |_|\__,_| |\___/|_|     \____/| .__/ \__,_|\__,_|\__\___|
+                                                      _/ |                   | |                        
+                                                     |__/                    |_|                        
+
+"
+
+echo "${red}WARNING: This is a Work In Progress Upgrade Script, don't be surprised if Cinnamon ends up breaking after the upgrade. If it does, please try to send me a copy of your '.xsession-errors' in your Home Folder (Hidden File), so I can examine the issue you're having. Mint 19 Tara is also a WIP, so features will be incomplete, themes will be missing in System Settings > Themes, and so on.${reset}
+
+"
+
+echo "A Major Update is available for feren OS, which provides it with the newest in Stable Packages for the system. These Updates only appear every 2 years, and give the OS lots of new updated applications, and System Tools.
+
+Y- Start the Update Now
+N- Dismiss and continue booting, but ask again next bootup
+"
+#sleep 10
+#chvt 2
+
+userinp1=$(systemd-ask-password --echo "Would you like to begin? ")
+
+if [ "$userinp1" = "Y" ] || [ "$userinp1" = "YES" ] || [ "$userinp1" = "y" ] || [ "$userinp1" = "yes" ]; then
+    echo ""
+else
+    echo "Update Delayed to next boot."
+    exit 0
+fi
+
+#Battery only = 1
+#AC = 0
+on_ac_power
+if [ ! $? -eq 0 ]; then
+    echo "Your Device's Battery is not charging. To ensure the upgrade finishes without too many errors occuring, please put the Device on charge during the major update process.
+"
+fi
+
+echo "To ensure the upgrade finishes without too many errors occuring, please DO NOT turn off the Device forcedly, the device will automatically shut down when it has finished updating.
+"
+
+userinp2=$(systemd-ask-password --echo "Start the upgrade, knowing this? ")
+if [ "$userinp2" = "Y" ] || [ "$userinp2" = "YES" ] || [ "$userinp2" = "y" ] || [ "$userinp2" = "yes" ]; then
+    echo ""
+else
+    echo "Upgrade Delayed to next boot."
+    exit 0
+fi
+
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
+done
+
+echo "Checking if Packages aren't broken first, and fixing if so."
+sudo dpkg --configure -a
+sudo apt-get -f install
+sudo dpkg --configure -a
+
+echo -en "\rChecking for internet access... [ ... ]" 
+wget -q --tries=10 --timeout=20 --spider http://archive.canonical.com
+if [[ $? -eq 0 ]]; then
+        echo -en "\rChecking for internet access... ${green}[ OK ]${reset}"
+else
+        echo -en "\rChecking for internet access... ${red}[ FAIL ]${reset}"
+        echo "
+
+${red}Oops, you're not connected to internet, which is needed for the upgrade. Please choose a network from the Network menu when logged in, and then restart to try again.${reset}
+"
+        echo "ENTER- Dismiss and continue booting"
+        systemd-ask-password --echo ""
+        exit 0
+fi
+
+# The Real Upgrade Process Begins
+echo "Refreshing Package Sources..."
+apt-get update
+echo "Making sure the current system packages are up to date..."
+apt-get dist-upgrade -y
+apt-get -f install -y
+apt-get dist-upgrade -y
+echo "Disabling Non-Feren-OS PPAs..."
+cd /etc/apt/sources.list.d
+for file in *.list; do
+    sed -e 's/^/#/' -i "$file"
+    sed -i 's/xenial/bionic/g' "$file"
+    newname=$(echo $file | sed "s/-xenial.list/-bionic.list/g")
+    mv "$file" "$newname"
+done
+echo "Re-adding Feren OS PPAs..."
+sudo rm -rf '/etc/apt/sources.list.d/additional-repositories.list' '/etc/apt/sources.list.d/additional-repositories.list.save' '/etc/apt/sources.list.d/atareao-atareao-xenial.list' '/etc/apt/sources.list.d/atareao-atareao-xenial.list.save' '/etc/apt/sources.list.d/budgie-remix-development-xenial.list' '/etc/apt/sources.list.d/budgie-remix-development-xenial.list.save' '/etc/apt/sources.list.d/dockbar-main-ppa-xenial.list' '/etc/apt/sources.list.d/elementary-os-stable-xenial.list' '/etc/apt/sources.list.d/elementary-os-stable-xenial.list.save' '/etc/apt/sources.list.d/fingerprint-fingerprint-gui-xenial.list' '/etc/apt/sources.list.d/fingerprint-fingerprint-gui-xenial.list.save' '/etc/apt/sources.list.d/gambas-team-gambas3-xenial.list' '/etc/apt/sources.list.d/gambas-team-gambas3-xenial.list.save' '/etc/apt/sources.list.d/google-chrome.list.save' '/etc/apt/sources.list.d/gpmdp.list' '/etc/apt/sources.list.d/gpmdp.list.save' '/etc/apt/sources.list.d/graphics-drivers-ppa-xenial.list' '/etc/apt/sources.list.d/graphics-drivers-ppa-xenial.list.save' '/etc/apt/sources.list.d/gwendal-lebihan-dev-cinnamon-nightly-xenial.list' '/etc/apt/sources.list.d/libreoffice-ppa-xenial.list' '/etc/apt/sources.list.d/libreoffice-ppa-xenial.list.save' '/etc/apt/sources.list.d/maarten-baert-simplescreenrecorder-xenial.list' '/etc/apt/sources.list.d/maarten-baert-simplescreenrecorder-xenial.list.save' '/etc/apt/sources.list.d/moka-daily-xenial.list' '/etc/apt/sources.list.d/moka-daily-xenial.list.save' '/etc/apt/sources.list.d/noobslab-apps-xenial.list' '/etc/apt/sources.list.d/noobslab-apps-xenial.list.save' '/etc/apt/sources.list.d/noobslab-icons2-xenial.list' '/etc/apt/sources.list.d/noobslab-icons2-xenial.list.save' '/etc/apt/sources.list.d/noobslab-icons-xenial.list' '/etc/apt/sources.list.d/noobslab-icons-xenial.list.save' '/etc/apt/sources.list.d/noobslab-macbuntu-xenial.list' '/etc/apt/sources.list.d/noobslab-macbuntu-xenial.list.save' '/etc/apt/sources.list.d/noobslab-themes-xenial.list' '/etc/apt/sources.list.d/noobslab-themes-xenial.list.save' '/etc/apt/sources.list.d/numix-ppa-xenial.list' '/etc/apt/sources.list.d/numix-ppa-xenial.list.save' '/etc/apt/sources.list.d/obsproject-obs-studio-xenial.list' '/etc/apt/sources.list.d/obsproject-obs-studio-xenial.list.save' '/etc/apt/sources.list.d/official-package-repositories.list.save' '/etc/apt/sources.list.d/official-source-repositories.list' '/etc/apt/sources.list.d/peek-developers-stable-xenial.list' '/etc/apt/sources.list.d/peterlevi-ppa-xenial.list' '/etc/apt/sources.list.d/peterlevi-ppa-xenial.list.save' '/etc/apt/sources.list.d/snwh-pulp-xenial.list' '/etc/apt/sources.list.d/snwh-pulp-xenial.list.save' '/etc/apt/sources.list.d/tista-adapta-xenial.list' '/etc/apt/sources.list.d/tista-adapta-xenial.list.save' '/etc/apt/sources.list.d/vivaldi.list' '/etc/apt/sources.list.d/vivaldi.list.save' '/etc/apt/sources.list.d/wine-wine-builds-xenial.list' '/etc/apt/sources.list.d/wine-wine-builds-xenial.list.save' '/etc/apt/sources.list.d/tista-build-xenial.list' '/etc/apt/sources.list.d/tista-build-xenial.list.save'
+
+sudo add-apt-repository ppa:atareao/atareao -y
+echo "Adding Elementary OS Team PPA"
+echo "deb http://ppa.launchpad.net/elementary-os/stable/ubuntu xenial main
+deb-src http://ppa.launchpad.net/elementary-os/stable/ubuntu xenial main" > "/etc/apt/sources.list.d/elementary-os-stable-bionic.list"
+sudo add-apt-repository ppa:fingerprint/fingerprint-gui -y
+echo "Adding Gambas Team PPA"
+echo "deb http://ppa.launchpad.net/gambas-team/gambas3/ubuntu artful main
+deb-src http://ppa.launchpad.net/gambas-team/gambas3/ubuntu artful main" > "/etc/apt/sources.list.d/gambas-team-gambas3-bionic.list"
+sudo add-apt-repository ppa:moka/daily -y
+echo "Adding Noobslabs Apps PPA"
+echo "deb http://ppa.launchpad.net/noobslab/apps/ubuntu artful main
+deb-src http://ppa.launchpad.net/noobslab/apps/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-apps-bionic.list"
+echo "Adding Noobslabs Icons 2 PPA"
+echo "deb http://ppa.launchpad.net/noobslab/icons2/ubuntu artful main
+deb-src http://ppa.launchpad.net/noobslab/icons2/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-icons2-bionic.list"
+echo "Adding Noobslabs Icons PPA"
+echo "deb http://ppa.launchpad.net/noobslab/icons/ubuntu artful main
+deb-src http://ppa.launchpad.net/noobslab/icons/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-icons-bionic.list"
+echo "Adding Noobslabs MacBuntu PPA"
+echo "deb http://ppa.launchpad.net/noobslab/macbuntu/ubuntu artful main
+deb-src http://ppa.launchpad.net/noobslab/macbuntu/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-macbuntu-bionic.list"
+echo "Adding Noobslabs Themes PPA"
+echo "deb http://ppa.launchpad.net/noobslab/themes/ubuntu artful main
+deb-src http://ppa.launchpad.net/noobslab/themes/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-themes-bionic.list"
+sudo add-apt-repository ppa:numix/ppa -y
+sudo add-apt-repository ppa:obsproject/obs-studio -y
+sudo add-apt-repository ppa:peterlevi/ppa -y
+sudo add-apt-repository ppa:snwh/pulp -y
+sudo add-apt-repository ppa:maarten-baert/simplescreenrecorder -y
+sudo add-apt-repository ppa:peek-developers/stable -y
+sudo add-apt-repository ppa:tista/adapta -y
+sudo add-apt-repository ppa:libreoffice/ppa -y
+sudo add-apt-repository ppa:graphics-drivers/ppa -y
+if [ -f /etc/apt/sources.list.d/gpmdp.list ]; then
+	rm -rf /etc/apt/sources.list.d/gpmdp.list
+fi
+echo "deb https://dl.bintray.com/marshallofsound/deb debian main" | sudo tee -a /etc/apt/sources.list.d/gpmdp.list
+wget -qO - https://gpmdp.xyz/bintray-public.key.asc | sudo apt-key add -
+rm -rf bintray-public.key.asc
+if [ -f /etc/apt/sources.list.d/vivaldi.list ]; then
+	sudo rm -rf /etc/apt/sources.list.d/vivaldi.list
+fi 
+echo "echo deb http://repo.vivaldi.com/stable/deb/ stable main > /etc/apt/sources.list.d/vivaldi.list" | sudo sh
+curl http://repo.vivaldi.com/stable/linux_signing_key.pub | sudo apt-key add -
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1397BC53640DB551
+wget -nc https://dl.winehq.org/wine-builds/Release.key
+sudo apt-key add Release.key
+rm -rf ./Release.key
+if [ -f /etc/apt/sources.list.d/additional-repositories.list ]; then
+	sudo rm -rf /etc/apt/sources.list.d/additional-repositories.list
+	sudo touch /etc/apt/sources.list.d/additional-repositories.list
+fi
+sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ artful main'
+sudo add-apt-repository ppa:tista/build -y
+echo "Done Adding PPAs!"
+echo "Ok, now that's done, let's get down to business. Firstly, let's switch the official repositories..."
+
+echo "deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/stable/ ./ 
+deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/earlybird/ ./" > /etc/apt/sources.list.d/feren-os.list
+echo "deb http://packages.linuxmint.com tara main upstream import backport
+
+deb http://archive.ubuntu.com/ubuntu bionic main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu bionic-backports main restricted universe multiverse
+
+deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
+deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list.d/official-package-repositories.list
+echo "OK, the Official Repositories have been switched, now to actually get to the part that WILL take forever."
+echo 'DISTRIB_ID=LinuxMint
+DISTRIB_RELEASE=19
+DISTRIB_CODENAME=tara
+DISTRIB_DESCRIPTION="feren OS"' > /etc/lsb-release
+apt update
+cp -R '/etc/apt/apt.conf.d/50unattended-upgrades' '/etc/apt/apt.conf.d/50unattended-upgrades.feren-bkup'
+apt-get -f install -y
+apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
+apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
+apt-get -f install -y
+apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
+apt-get -f install -y
+apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
+apt-get -f install -y
+
+if [[ $? -eq 0 ]]; then
+        echo -en "\rChecking Update was successful... ${green}[ OK ]${reset}"
+        echo "
+
+${green}System Update Completed Successfully! Shutting Down in 3 seconds...${reset}
+"
+else
+        echo -en "\rChecking Update was successful... ${red}[ FAIL ]${reset}"
+        echo "
+
+${red}Oops, looks like an error occured during the update, we'll try to rectify this, and then shut down.${reset}
+"
+        dpkg --configure -a
+        apt-get -f install -y
+        apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
+        apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
+        apt-get -f install -y
+        apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
+        apt-get -f install -y
+        apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
+        apt-get -f install -y
+        apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
+        echo "
+
+System Update Error Fix + Overall Update Completed Successfully! Doing last tasks...
+"
+fi
+#Begin Theme Recompilation
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windowsxp-theme|grep "install ok installed")
+if [ ! "" == "$PKG_OK" ]; then
+	/var/lib/dpkg/info/windowsxp-themer.postinst
+fi
+#End Theme Recompilation
+apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
+systemctl disable majorupdate-feren
+dpkg 
+rm -rf /etc/systemd/system/majorupdate-feren.service
+rm '/etc/apt/apt.conf.d/50unattended-upgrades' '/etc/apt/apt.conf.d/50unattended-upgrades.ucf-old' '/etc/apt/apt.conf.d/50unattended-upgrades.dpkg-old'
+mv '/etc/apt/apt.conf.d/50unattended-upgrades.feren-bkup' '/etc/apt/apt.conf.d/50unattended-upgrades'
+echo "Done! Shutting Down in 3 seconds..."
+#sleep 3s
+read -p "Press ENTER to shut down your PC. Otherwise, close the Terminal.
+WARNING: The shutdown command will instantly start system shutdown, so save any work NOW."
+sudo shutdown now
