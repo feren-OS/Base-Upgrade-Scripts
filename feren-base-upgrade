@@ -1,23 +1,5 @@
 #!/bin/bash
 
-#chvt 2
-clear
-red=`tput setaf 1`
-green=`tput setaf 2`
-reset=`tput sgr0`
-
-echo "
-   __                       ____   _____   __  __       _              _    _           _       _       
-  / _|                     / __ \ / ____| |  \/  |     (_)            | |  | |         | |     | |      
- | |_ ___ _ __ ___ _ __   | |  | | (___   | \  / | __ _ _  ___  _ __  | |  | |_ __   __| | __ _| |_ ___
- |  _/ _ \ |__/ _ \ |_ \  | |  | |\___ \  | |\/| |/ _| | |/ _ \| |__| | |  | | |_ \ / _| |/ _| | __/ _ \ \
-
- | ||  __/ | |  __/ | | | | |__| |____) | | |  | | (_| | | (_) | |    | |__| | |_) | (_| | (_| | ||  __/
- |_| \___|_|  \___|_| |_|  \____/|_____/  |_|  |_|\__,_| |\___/|_|     \____/| .__/ \__,_|\__,_|\__\___|
-                                                      _/ |                   | |                        
-                                                     |__/                    |_|                        
-
-"
 
 echo "${red}WARNING: This is a Work In Progress Upgrade Script, don't be surprised if Cinnamon ends up breaking after the upgrade. If it does, please try to send me a copy of your '.xsession-errors' in your Home Folder (Hidden File), so I can examine the issue you're having. Mint 19 Tara is also a WIP, so features will be incomplete, themes will be missing in System Settings > Themes, and so on.${reset}
 
@@ -178,10 +160,12 @@ deb http://archive.ubuntu.com/ubuntu bionic-backports main restricted universe m
 deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
 deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list.d/official-package-repositories.list
 echo "OK, the Official Repositories have been switched, now to actually get to the part that WILL take forever."
+#Renaming Mint back to Feren OS
 echo 'DISTRIB_ID=LinuxMint
 DISTRIB_RELEASE=19
 DISTRIB_CODENAME=tara
 DISTRIB_DESCRIPTION="feren OS"' > /etc/lsb-release
+#End Renaming Mint back to Feren OS
 apt update
 cp -R '/etc/apt/apt.conf.d/50unattended-upgrades' '/etc/apt/apt.conf.d/50unattended-upgrades.feren-bkup'
 apt-get -f install -y
@@ -226,12 +210,15 @@ if [ ! "" == "$PKG_OK" ]; then
 	/var/lib/dpkg/info/windowsxp-themer.postinst
 fi
 #End Theme Recompilation
+#WARNING: These package purges are because they break Cinnamon Session in 18.04 (Error logged to HOMEFOLDER/.xsession-errors), DO NOT REMOVE THIS COMMAND UNLESS YOU HAVE AN ALTERNATIVE DE TO LOG INTO
 apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
+#More stuff for the script if it was part of its intended package
 systemctl disable majorupdate-feren
-dpkg 
+
 rm -rf /etc/systemd/system/majorupdate-feren.service
 rm '/etc/apt/apt.conf.d/50unattended-upgrades' '/etc/apt/apt.conf.d/50unattended-upgrades.ucf-old' '/etc/apt/apt.conf.d/50unattended-upgrades.dpkg-old'
 mv '/etc/apt/apt.conf.d/50unattended-upgrades.feren-bkup' '/etc/apt/apt.conf.d/50unattended-upgrades'
+#End More stuff for the script if it was part of its intended package
 echo "Done! Shutting Down in 3 seconds..."
 #sleep 3s
 read -p "Press ENTER to shut down your PC. Otherwise, close the Terminal.
