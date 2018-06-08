@@ -1,4 +1,4 @@
 # Feren OS System Base Upgrade Scripts
 Base Upgrade Scripts for Feren OS
 
-Mint 18.3 -> Mint 19.0 (WORK IN PROGRESS): https://github.com/feren-OS/Base-Upgrade-Script/tree/sylvia-to-tara
+Mint 18.3 -> Mint 19.0 (WORK IN PROGRESS): https://gitlab.com/Feren-OS/Base-Upgrade-Scripts/tree/sylvia-to-tara
