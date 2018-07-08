@@ -1,4 +1,2 @@
-# Feren OS System Base Upgrade Scripts
-Base Upgrade Scripts for Feren OS
-
-Mint 18.3 -> Mint 19.0: https://gitlab.com/Feren-OS/Base-Upgrade-Scripts/tree/sylvia-to-tara
+# Feren OS System Base Upgrade Blockers
+Files designed to block Feren OS Major Updates on existence, due to issues that are pending fixes upstream.
