@@ -1,0 +1,4 @@
+Major Updating has been blocked for this current moment in time due to a massive issue with EVERY 16.04 > 18.04 upgrade path, caused by an update to the MESA package (a backport) causing the version number of MESA in 16.04 to be higher than the version in 18.04, causing DPKG to keep the 16.04 version, creating massive dependency issues that can completely trash the graphical pieces of the Feren OS Installation, including DEs, System Libraries, and so on.
+I'm sorry for the inconveinience caused by this, but it's better to have this blocked than have your Feren OS install wrecked, is it not? All I can hope for now is that Mint's poking at Ubuntu over it will get this fixed ASAP.
+
+- The Feren OS Dev
