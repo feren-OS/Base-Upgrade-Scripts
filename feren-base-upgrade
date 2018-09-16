@@ -5,21 +5,6 @@ red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
 
-if [ "$1" = "--power" ]; then
-	if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-poweroff ]; then
-	    rm -f /usr/share/feren-os-majorupdate/majorupdate-poweroff
-	    reboot
-	else
-	    rm -f /usr/share/feren-os-majorupdate/majorupdate-poweroff
-	    poweroff
-	fi
-fi
-
-if [ "$1" = "--shutdown" ] || [ -f /usr/share/feren-os-majorupdate/majorupdate-poweroff ]; then
-	echo "[INFO] Will shutdown once finished."
-	touch /usr/share/feren-os-majorupdate/majorupdate-poweroff
-fi
-
 if [ -f /usr/share/feren-os/majorupdate-force ]; then
     echo "${red}WARNING: You are running Feren OS Major Update in Force Update Mode, which prevents blocks put in by the Developer from stopping the update from occuring. This is EXTREMELY dangerous.${reset}"
     sleep 10
@@ -37,12 +22,6 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     sleep 0.5
     ((i=i+1))
 done
-
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' cinnamon|grep "install ok installed")
-if [ ! "" == "$PKG_OK" ]; then
-  echo "Cinnamon detected as installed, making a record of this."
-  touch /usr/share/feren-os-majorupdate/cinnamon-installed
-fi
 
 echo "Checking if Packages aren't broken first, and fixing if so."
 yes '' | dpkg --configure -a --force-confdef --force-confold
