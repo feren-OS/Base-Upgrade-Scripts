@@ -1,45 +1,44 @@
 #!/bin/bash
 
+clear
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
 
-echo "${red}WARNING: This is a Work In Progress Upgrade Script, don't be surprised if Cinnamon ends up breaking after the upgrade. If it does, please try to send me a copy of your '.xsession-errors' in your Home Folder (Hidden File), so I can examine the issue you're having. Mint 19 Tara is also a WIP, so features will be incomplete, themes will be missing in System Settings > Themes, and so on.${reset}
+# This feature is temporarily scrapped, for now, until 'wc -l' decides to work with me and produce an actual number based on the lines outputted that are visible... |:/
+#mbpids=$(ps -fC feren-majorupdate-bootup | awk '{if(NR>1)print}' | wc -l)
+#xtpids=$(ps -fC xterm | awk '{if(NR>1)print}' | wc -l)
+#if [[ "$mbpids" -gt 3 ]]; then
+#	echo "Major Updater already running. Exiting. $mbpids"
+#	exit 0
+#fi
+#if [[ "$xtpids" -gt 1 ]]; then
+#	echo "Major Updater already running. Exiting."
+#	exit 0
+#fi
 
-"
-
-echo "A Major Update is available for feren OS, which provides it with the newest in Stable Packages for the system. These Updates only appear every 2 years, and give the OS lots of new updated applications, and System Tools.
-
-Y- Start the Update Now
-N- Dismiss and continue booting, but ask again next bootup
-"
-#sleep 10
-#chvt 2
-
-userinp1=$(systemd-ask-password --echo "Would you like to begin? ")
-
-if [ "$userinp1" = "Y" ] || [ "$userinp1" = "YES" ] || [ "$userinp1" = "y" ] || [ "$userinp1" = "yes" ]; then
-    echo ""
-else
-    echo "Update Delayed to next boot."
-    exit 0
+if [ "$1" = "--power" ]; then
+	if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-poweroff ]; then
+	    rm -f /usr/share/feren-os-majorupdate/majorupdate-poweroff
+	    reboot
+	else
+	    rm -f /usr/share/feren-os-majorupdate/majorupdate-poweroff
+	    poweroff
+	fi
 fi
 
-#Battery only = 1
-#AC = 0
-on_ac_power
-if [ ! $? -eq 0 ]; then
-    echo "Your Device's Battery is not charging. To ensure the upgrade finishes without too many errors occuring, please put the Device on charge during the major update process.
-"
+if [ "$1" = "--shutdown" ] || [ -f /usr/share/feren-os-majorupdate/majorupdate-poweroff ]; then
+	echo "[INFO] Will shutdown once finished."
+	touch /usr/share/feren-os-majorupdate/majorupdate-poweroff
 fi
 
-echo "To ensure the upgrade finishes without too many errors occuring, please DO NOT turn off the Device forcedly, the device will automatically shut down when it has finished updating.
-"
-
-userinp2=$(systemd-ask-password --echo "Start the upgrade, knowing this? ")
-if [ "$userinp2" = "Y" ] || [ "$userinp2" = "YES" ] || [ "$userinp2" = "y" ] || [ "$userinp2" = "yes" ]; then
-    echo ""
-else
-    echo "Upgrade Delayed to next boot."
-    exit 0
+if [ -f /usr/share/feren-os/majorupdate-force ]; then
+    echo "${red}WARNING: You are running Feren OS Major Update in Force Update Mode, which prevents blocks put in by the Developer from stopping the update from occuring. This is EXTREMELY dangerous.${reset}"
+    sleep 10
 fi
+
+echo "Running Feren Maintenance before beginning, to clear out any known issues..."
+feren-maintenance --auto
 
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     case $(($i % 4)) in
@@ -54,173 +53,740 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     ((i=i+1))
 done
 
-echo "Checking if Packages aren't broken first, and fixing if so."
-sudo dpkg --configure -a
-sudo apt-get -f install
-sudo dpkg --configure -a
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' cinnamon|grep "install ok installed")
+if [ ! "" == "$PKG_OK" ]; then
+  echo "Cinnamon detected as installed, making a record of this."
+  touch /usr/share/feren-os-majorupdate/cinnamon-installed
+fi
 
-echo -en "\rChecking for internet access... [ ... ]" 
+echo "Checking if Packages aren't broken first, and fixing if so."
+yes '' | dpkg --configure -a --force-confdef --force-confold
+i=0
+tput sc
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
+done
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
+	echo "[INFO] No Major Update Progress file found, assuming this is a freshly done Major Update..."
+	yes '' | apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+	borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+		if [ "$borkedpkgnames" = "" ]; then
+		        borkedpkgnames="$i"
+	        else
+		        borkedpkgnames="$borkedpkgnames $i"
+		fi
+	done
+	if [ "$borkedpkgnames" = "acpid" ]; then
+	        successful=true
+	fi
+	if [[ $? -eq 0 ]] || [ $successful = true ]; then
+		echo -en "\rChecking package situation will allow for a Major Update to commence... ${green}[ OK ]${reset}
+	"
+	else
+		echo -en "\rChecking package situation will allow for a Major Update to commence... ${red}[ FAIL ]${reset}
+	"
+		echo "
+
+	${red}Oops, your Feren OS installation is currently in broken package situation meaning that the Major Update will not be possible at this current moment in time without risking the breakage of core Feren OS packages. Please fix this issue and then reboot and try again.${reset}
+	"
+		echo "ENTER- Dismiss and continue booting"
+		read
+		killall feren-majorupdate-session
+		exit 0
+	fi
+else
+	echo "[INFO] Major Update Progress file found, resuming from last checkpoint..."
+fi
+i=0
+tput sc
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
+done
+yes '' | dpkg --configure -a --force-confdef --force-confold
+
+echo -en "\rChecking for internet access... [...]" 
 wget -q --tries=10 --timeout=20 --spider http://archive.canonical.com
 if [[ $? -eq 0 ]]; then
-        echo -en "\rChecking for internet access... ${green}[ OK ]${reset}"
+        echo -en "\rChecking for internet access... ${green}[ OK ]${reset}
+"
 else
-        echo -en "\rChecking for internet access... ${red}[ FAIL ]${reset}"
+        echo -en "\rChecking for internet access... ${red}[ FAIL ]${reset}
+"
         echo "
 
 ${red}Oops, you're not connected to internet, which is needed for the upgrade. Please choose a network from the Network menu when logged in, and then restart to try again.${reset}
 "
+	if [ -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
+		echo "${red}NOTE: Your system could be in an unusable state. If you can't use it, just Restart to try this again.${reset}"
+	fi
         echo "ENTER- Dismiss and continue booting"
-        systemd-ask-password --echo ""
+        read
+        killall feren-majorupdate-session
+        exit 0
+fi
+
+echo -en "\rChecking that the Major Update process hasn't been blocked by the Developer... [...]" 
+if [ -f /tmp/feren-majorupdate-blockmsg ]; then
+    rm -f /tmp/feren-majorupdate-blockmsg
+fi
+wget -q --tries=10 --timeout=20 --spider https://gitlab.com/Feren-OS/Base-Upgrade-Scripts/raw/blockers/majorupdate-block
+if [[ ! $? -eq 0 ]]; then
+        echo -en "\rChecking that the Major Update process hasn't been blocked by the Developer... ${green}[ OK ]${reset}
+"
+        if [ -f /usr/share/feren-os/majorupdate-blocked-before ]; then
+            rm -f /usr/share/feren-os/majorupdate-blocked-before
+        fi
+else
+        wget https://gitlab.com/Feren-OS/Base-Upgrade-Scripts/raw/blockers/majorupdate-block -O /tmp/feren-majorupdate-blockmsg
+        clear
+        echo -en "\rChecking that the Major Update process hasn't been blocked by the Developer... ${red}[ FAIL ]${reset}
+"
+        if [ ! -f /usr/share/feren-os/majorupdate-force ]; then
+            echo "
+
+    ${red}Unfortunately, the Developer has blocked Major Updates from being installed by anyone. This could be due to a major issue regarding update paths or other major issues with the process that need to be fixed. Here's his reason for blocking major updates at this time:${reset}
+    $(cat /tmp/feren-majorupdate-blockmsg)
+    "
+            echo "ENTER- Dismiss and continue booting"
+            if [ ! -f /usr/share/feren-os/majorupdate-blocked-before ]; then
+                touch /usr/share/feren-os/majorupdate-blocked-before
+            fi
+            read
+            killall feren-majorupdate-session
+            exit 0
+        fi
+fi
+sftries=0
+sftries=0
+sfsuccess=false
+while [ $sftries -lt 20 ] && [ "$sfsuccess" = false ]; do
+	echo -en "\rChecking for SourceForge access... [...]" 
+	wget https://sourceforge.net/projects/feren-os-repositories/files/stable/arc-icons.deb -O /tmp/sourceforge-test.deb
+	if [[ $(file --mime-type /tmp/sourceforge-test.deb) = *application/vnd.debian.binary-package* ]]; then
+		sfsuccess=true
+		rm -f /tmp/sourceforge-test.deb
+	else
+		sfsuccess=false
+		rm -f /tmp/sourceforge-test.deb
+		sftries=$(($sftries+1))
+	fi
+done
+if [ $sfsuccess = true ]; then
+        echo -en "\rChecking for SourceForge access... ${green}[ OK ]${reset}
+"
+	rm -f /tmp/sourceforge-test.deb
+else
+        echo -en "\rChecking for SourceForge access... ${red}[ FAIL ]${reset}
+"
+	rm -f /tmp/sourceforge-test.deb
+        echo "
+
+${red}Oops, your computer cannot currently connect to SourceForge meaning that the update process is not currently safe in order to update without issues regarding the default theme, and/or System Settings.${reset}
+"
+	if [ -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
+		echo "${red}NOTE: Your system could be in an unusable state. If you can't use it, just Restart to try this again.${reset}"
+	fi
+        echo "ENTER- Dismiss and continue booting"
+        read
+        killall feren-majorupdate-session
         exit 0
 fi
 
 # The Real Upgrade Process Begins
 echo "Refreshing Package Sources..."
+i=0
+tput sc
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
+done
 apt-get update
 echo "Making sure the current system packages are up to date..."
-apt-get dist-upgrade -y
-apt-get -f install -y
-apt-get dist-upgrade -y
-echo "Disabling Non-Feren-OS PPAs..."
-cd /etc/apt/sources.list.d
-for file in *.list; do
-    sed -e 's/^/#/' -i "$file"
-    sed -i 's/xenial/bionic/g' "$file"
-    newname=$(echo $file | sed "s/-xenial.list/-bionic.list/g")
-    mv "$file" "$newname"
+i=0
+tput sc
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
 done
-echo "Re-adding Feren OS PPAs..."
-sudo rm -rf '/etc/apt/sources.list.d/additional-repositories.list' '/etc/apt/sources.list.d/additional-repositories.list.save' '/etc/apt/sources.list.d/atareao-atareao-xenial.list' '/etc/apt/sources.list.d/atareao-atareao-xenial.list.save' '/etc/apt/sources.list.d/budgie-remix-development-xenial.list' '/etc/apt/sources.list.d/budgie-remix-development-xenial.list.save' '/etc/apt/sources.list.d/dockbar-main-ppa-xenial.list' '/etc/apt/sources.list.d/elementary-os-stable-xenial.list' '/etc/apt/sources.list.d/elementary-os-stable-xenial.list.save' '/etc/apt/sources.list.d/fingerprint-fingerprint-gui-xenial.list' '/etc/apt/sources.list.d/fingerprint-fingerprint-gui-xenial.list.save' '/etc/apt/sources.list.d/gambas-team-gambas3-xenial.list' '/etc/apt/sources.list.d/gambas-team-gambas3-xenial.list.save' '/etc/apt/sources.list.d/google-chrome.list.save' '/etc/apt/sources.list.d/gpmdp.list' '/etc/apt/sources.list.d/gpmdp.list.save' '/etc/apt/sources.list.d/graphics-drivers-ppa-xenial.list' '/etc/apt/sources.list.d/graphics-drivers-ppa-xenial.list.save' '/etc/apt/sources.list.d/gwendal-lebihan-dev-cinnamon-nightly-xenial.list' '/etc/apt/sources.list.d/libreoffice-ppa-xenial.list' '/etc/apt/sources.list.d/libreoffice-ppa-xenial.list.save' '/etc/apt/sources.list.d/maarten-baert-simplescreenrecorder-xenial.list' '/etc/apt/sources.list.d/maarten-baert-simplescreenrecorder-xenial.list.save' '/etc/apt/sources.list.d/moka-daily-xenial.list' '/etc/apt/sources.list.d/moka-daily-xenial.list.save' '/etc/apt/sources.list.d/noobslab-apps-xenial.list' '/etc/apt/sources.list.d/noobslab-apps-xenial.list.save' '/etc/apt/sources.list.d/noobslab-icons2-xenial.list' '/etc/apt/sources.list.d/noobslab-icons2-xenial.list.save' '/etc/apt/sources.list.d/noobslab-icons-xenial.list' '/etc/apt/sources.list.d/noobslab-icons-xenial.list.save' '/etc/apt/sources.list.d/noobslab-macbuntu-xenial.list' '/etc/apt/sources.list.d/noobslab-macbuntu-xenial.list.save' '/etc/apt/sources.list.d/noobslab-themes-xenial.list' '/etc/apt/sources.list.d/noobslab-themes-xenial.list.save' '/etc/apt/sources.list.d/numix-ppa-xenial.list' '/etc/apt/sources.list.d/numix-ppa-xenial.list.save' '/etc/apt/sources.list.d/obsproject-obs-studio-xenial.list' '/etc/apt/sources.list.d/obsproject-obs-studio-xenial.list.save' '/etc/apt/sources.list.d/official-package-repositories.list.save' '/etc/apt/sources.list.d/official-source-repositories.list' '/etc/apt/sources.list.d/peek-developers-stable-xenial.list' '/etc/apt/sources.list.d/peterlevi-ppa-xenial.list' '/etc/apt/sources.list.d/peterlevi-ppa-xenial.list.save' '/etc/apt/sources.list.d/snwh-pulp-xenial.list' '/etc/apt/sources.list.d/snwh-pulp-xenial.list.save' '/etc/apt/sources.list.d/tista-adapta-xenial.list' '/etc/apt/sources.list.d/tista-adapta-xenial.list.save' '/etc/apt/sources.list.d/vivaldi.list' '/etc/apt/sources.list.d/vivaldi.list.save' '/etc/apt/sources.list.d/wine-wine-builds-xenial.list' '/etc/apt/sources.list.d/wine-wine-builds-xenial.list.save' '/etc/apt/sources.list.d/tista-build-xenial.list' '/etc/apt/sources.list.d/tista-build-xenial.list.save'
-
-sudo add-apt-repository ppa:atareao/atareao -y
-echo "Adding Elementary OS Team PPA"
-echo "deb http://ppa.launchpad.net/elementary-os/stable/ubuntu xenial main
-deb-src http://ppa.launchpad.net/elementary-os/stable/ubuntu xenial main" > "/etc/apt/sources.list.d/elementary-os-stable-bionic.list"
-sudo add-apt-repository ppa:fingerprint/fingerprint-gui -y
-echo "Adding Gambas Team PPA"
-echo "deb http://ppa.launchpad.net/gambas-team/gambas3/ubuntu artful main
-deb-src http://ppa.launchpad.net/gambas-team/gambas3/ubuntu artful main" > "/etc/apt/sources.list.d/gambas-team-gambas3-bionic.list"
-sudo add-apt-repository ppa:moka/daily -y
-echo "Adding Noobslabs Apps PPA"
-echo "deb http://ppa.launchpad.net/noobslab/apps/ubuntu artful main
-deb-src http://ppa.launchpad.net/noobslab/apps/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-apps-bionic.list"
-echo "Adding Noobslabs Icons 2 PPA"
-echo "deb http://ppa.launchpad.net/noobslab/icons2/ubuntu artful main
-deb-src http://ppa.launchpad.net/noobslab/icons2/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-icons2-bionic.list"
-echo "Adding Noobslabs Icons PPA"
-echo "deb http://ppa.launchpad.net/noobslab/icons/ubuntu artful main
-deb-src http://ppa.launchpad.net/noobslab/icons/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-icons-bionic.list"
-echo "Adding Noobslabs MacBuntu PPA"
-echo "deb http://ppa.launchpad.net/noobslab/macbuntu/ubuntu artful main
-deb-src http://ppa.launchpad.net/noobslab/macbuntu/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-macbuntu-bionic.list"
-echo "Adding Noobslabs Themes PPA"
-echo "deb http://ppa.launchpad.net/noobslab/themes/ubuntu artful main
-deb-src http://ppa.launchpad.net/noobslab/themes/ubuntu artful main" > "/etc/apt/sources.list.d/noobslab-themes-bionic.list"
-sudo add-apt-repository ppa:numix/ppa -y
-sudo add-apt-repository ppa:obsproject/obs-studio -y
-sudo add-apt-repository ppa:peterlevi/ppa -y
-sudo add-apt-repository ppa:snwh/pulp -y
-sudo add-apt-repository ppa:maarten-baert/simplescreenrecorder -y
-sudo add-apt-repository ppa:peek-developers/stable -y
-sudo add-apt-repository ppa:tista/adapta -y
-sudo add-apt-repository ppa:libreoffice/ppa -y
-sudo add-apt-repository ppa:graphics-drivers/ppa -y
-if [ -f /etc/apt/sources.list.d/gpmdp.list ]; then
-	rm -rf /etc/apt/sources.list.d/gpmdp.list
+yes '' | apt-get install -y mint-common --reinstall
+i=0
+tput sc
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
+done
+yes '' | apt-get upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+i=0
+tput sc
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    case $(($i % 4)) in
+        0 ) j="-" ;;
+        1 ) j="\\" ;;
+        2 ) j="|" ;;
+        3 ) j="/" ;;
+    esac
+    tput rc
+    echo -en "\r[$j] Waiting for other software managers to finish..." 
+    sleep 0.5
+    ((i=i+1))
+done
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
+	echo "ChkPoint1" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 1 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
 fi
-echo "deb https://dl.bintray.com/marshallofsound/deb debian main" | sudo tee -a /etc/apt/sources.list.d/gpmdp.list
-wget -qO - https://gpmdp.xyz/bintray-public.key.asc | sudo apt-key add -
-rm -rf bintray-public.key.asc
-if [ -f /etc/apt/sources.list.d/vivaldi.list ]; then
-	sudo rm -rf /etc/apt/sources.list.d/vivaldi.list
-fi 
-echo "echo deb http://repo.vivaldi.com/stable/deb/ stable main > /etc/apt/sources.list.d/vivaldi.list" | sudo sh
-curl http://repo.vivaldi.com/stable/linux_signing_key.pub | sudo apt-key add -
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1397BC53640DB551
-wget -nc https://dl.winehq.org/wine-builds/Release.key
-sudo apt-key add Release.key
-rm -rf ./Release.key
-if [ -f /etc/apt/sources.list.d/additional-repositories.list ]; then
-	sudo rm -rf /etc/apt/sources.list.d/additional-repositories.list
-	sudo touch /etc/apt/sources.list.d/additional-repositories.list
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint1" ]; then
+	yes '' | apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	yes '' | apt-get upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
 fi
-sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ artful main'
-sudo add-apt-repository ppa:tista/build -y
-echo "Done Adding PPAs!"
-echo "Ok, now that's done, let's get down to business. Firstly, let's switch the official repositories..."
-
-echo "deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/stable/ ./ 
-deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/earlybird/ ./" > /etc/apt/sources.list.d/feren-os.list
-echo "deb http://packages.linuxmint.com tara main upstream import backport
-
-deb http://archive.ubuntu.com/ubuntu bionic main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu bionic-backports main restricted universe multiverse
-
-deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
-deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list.d/official-package-repositories.list
-echo "OK, the Official Repositories have been switched, now to actually get to the part that WILL take forever."
-#Renaming Mint back to Feren OS
-echo 'DISTRIB_ID=LinuxMint
-DISTRIB_RELEASE=19
-DISTRIB_CODENAME=tara
-DISTRIB_DESCRIPTION="feren OS"' > /etc/lsb-release
-#End Renaming Mint back to Feren OS
-apt update
-cp -R '/etc/apt/apt.conf.d/50unattended-upgrades' '/etc/apt/apt.conf.d/50unattended-upgrades.feren-bkup'
-apt-get -f install -y
-apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
-apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
-apt-get -f install -y
-apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
-apt-get -f install -y
-apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
-apt-get -f install -y
-
-if [[ $? -eq 0 ]]; then
-        echo -en "\rChecking Update was successful... ${green}[ OK ]${reset}"
-        echo "
-
-${green}System Update Completed Successfully! Shutting Down in 3 seconds...${reset}
-"
-else
-        echo -en "\rChecking Update was successful... ${red}[ FAIL ]${reset}"
-        echo "
-
-${red}Oops, looks like an error occured during the update, we'll try to rectify this, and then shut down.${reset}
-"
-        dpkg --configure -a
-        apt-get -f install -y
-        apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
-        apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
-        apt-get -f install -y
-        apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
-        apt-get -f install -y
-        apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y
-        apt-get -f install -y
-        apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
-        echo "
-
-System Update Error Fix + Overall Update Completed Successfully! Doing last tasks...
-"
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint1" ]; then
+	echo "ChkPoint2" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 2 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
 fi
-#Begin Theme Recompilation
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windowsxp-theme|grep "install ok installed")
-if [ ! "" == "$PKG_OK" ]; then
-	/var/lib/dpkg/info/windowsxp-themer.postinst
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint2" ]; then
+	echo "Disabling Non-Feren-OS PPAs..."
+	cd /etc/apt/sources.list.d
+	for file in *.list; do
+	    sed -e 's/^/#/' -i "$file"
+	    sed -i 's/xenial/bionic/g' "$file"
+	    newname=$(echo $file | sed "s/-xenial.list/-bionic.list/g")
+	    mv "$file" "$newname"
+	done
+	echo "Re-adding Non-Feren-OS PPAs..."
+	/var/lib/dpkg/info/feren-ppas.postinst --force-add-all
+	echo "Done Adding PPAs!"
+	echo "Ok, now that's done, let's get down to business. Firstly, let's switch the official repositories..."
 fi
-#End Theme Recompilation
-#WARNING: These package purges are because they break Cinnamon Session in 18.04 (Error logged to HOMEFOLDER/.xsession-errors), DO NOT REMOVE THIS COMMAND UNLESS YOU HAVE AN ALTERNATIVE DE TO LOG INTO
-apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y
-#More stuff for the script if it was part of its intended package
-systemctl disable majorupdate-feren
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint2" ]; then
+	echo "ChkPoint3" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 3 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
+	echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted universe multiverse
+	deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted universe multiverse
+	deb http://archive.ubuntu.com/ubuntu bionic-backports main restricted universe multiverse
 
-rm -rf /etc/systemd/system/majorupdate-feren.service
-rm '/etc/apt/apt.conf.d/50unattended-upgrades' '/etc/apt/apt.conf.d/50unattended-upgrades.ucf-old' '/etc/apt/apt.conf.d/50unattended-upgrades.dpkg-old'
-mv '/etc/apt/apt.conf.d/50unattended-upgrades.feren-bkup' '/etc/apt/apt.conf.d/50unattended-upgrades'
-#End More stuff for the script if it was part of its intended package
-echo "Done! Shutting Down in 3 seconds..."
-#sleep 3s
-read -p "Press ENTER to shut down your PC. Otherwise, close the Terminal.
-WARNING: The shutdown command will instantly start system shutdown, so save any work NOW."
-sudo shutdown now
+	deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
+	deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list
+	echo "deb http://packages.linuxmint.com tara main upstream import backport" > /etc/apt/sources.list.d/official-package-repositories.list
+	echo "deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/stable/ ./
+	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/software/ ./" > /etc/apt/sources.list.d/feren-os.list
+
+	sed -i 's/18/19/g' /etc/lsb-release
+	sed -i 's/19.3/19/g' /etc/lsb-release
+	sed -i 's/19.2/19/g' /etc/lsb-release
+	sed -i 's/19.1/19/g' /etc/lsb-release
+	sed -i 's/16.04/18.04/g' /etc/lsb-release
+	sed -i 's/sarah/tara/g' /etc/lsb-release
+	sed -i 's/sonya/tara/g' /etc/lsb-release
+	sed -i 's/serena/tara/g' /etc/lsb-release
+	sed -i 's/sylvia/tara/g' /etc/lsb-release
+	sed -i 's/xenial/bionic/g' /etc/lsb-release
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
+	echo "ChkPoint4" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 4 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint4" ]; then
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	apt-get update
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint4" ]; then
+	echo "ChkPoint5" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 5 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint5" ]; then
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get -f install -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint5" ]; then
+	echo "ChkPoint6" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 6 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint6" ]; then
+	sh -c 'apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint6" ]; then
+	echo "ChkPoint7" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 7 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint7" ]; then
+	sh -c 'apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get -f install -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get -f install -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get -f install -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint7" ]; then
+	echo "ChkPoint8" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 8 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint8" ]; then
+	sh -c 'apt-get -f install -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+	borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if [ "$borkedpkgnames" = "" ]; then
+		borkedpkgnames="$i"
+	    else
+		borkedpkgnames="$borkedpkgnames $i"
+	    fi
+	done
+	if [ "$borkedpkgnames" = "acpid" ]; then
+	    #ACPID will fail until we specify to have it installed very late in the script, so...
+	    successful1=true
+	fi
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+	sh -c 'apt-get -f install -y'
+	i=0
+	tput sc
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+	    case $(($i % 4)) in
+		0 ) j="-" ;;
+		1 ) j="\\" ;;
+		2 ) j="|" ;;
+		3 ) j="/" ;;
+	    esac
+	    tput rc
+	    echo -en "\r[$j] Waiting for other software managers to finish..." 
+	    sleep 0.5
+	    ((i=i+1))
+	done
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint8" ]; then
+	echo "ChkPoint9" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
+	echo "Checkpoint 9 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
+fi
+if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint9" ]; then
+	apt-get -f install -y
+	if [[ $? -eq 0 ]] || [ "$successful1" = true ]; then
+		echo -en "\rChecking Update was successful... ${green}[ OK ]${reset}
+	"
+		if [ ! "$1" = "--shutdown" ]; then
+		    echo "
+
+	${green}System Update Completed Successfully! Performing last tasks and then Restarting...${reset}
+	"
+		else
+		    echo "
+
+	${green}System Update Completed Successfully! Performing last tasks and then Shutting Down...${reset}
+	"
+		fi
+	else
+		echo -en "\rChecking Update was successful... ${red}[ FAIL ]${reset}
+	"
+		echo "
+
+	${red}Oops, looks like an error occured during the update, we'll try to rectify this, and then shut down.${reset}
+	"
+		i=0
+		tput sc
+		while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+		    case $(($i % 4)) in
+		        0 ) j="-" ;;
+		        1 ) j="\\" ;;
+		        2 ) j="|" ;;
+		        3 ) j="/" ;;
+		    esac
+		    tput rc
+		    echo -en "\r[$j] Waiting for other software managers to finish..." 
+		    sleep 0.5
+		    ((i=i+1))
+		done
+		yes '' | dpkg --configure -a
+		tries=0
+		successful=false
+		while [ $tries -lt 100 ] && [ $successful = false ]; do
+		    i=0
+		    tput sc
+		    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+		        case $(($i % 4)) in
+		            0 ) j="-" ;;
+		            1 ) j="\\" ;;
+		            2 ) j="|" ;;
+		            3 ) j="/" ;;
+		        esac
+		        tput rc
+		        echo -en "\r[$j] Waiting for other software managers to finish..." 
+		        sleep 0.5
+		        ((i=i+1))
+		    done
+		    sh -c 'apt-get -f install -y'
+		    i=0
+		    tput sc
+		    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+		        case $(($i % 4)) in
+		            0 ) j="-" ;;
+		            1 ) j="\\" ;;
+		            2 ) j="|" ;;
+		            3 ) j="/" ;;
+		        esac
+		        tput rc
+		        echo -en "\r[$j] Waiting for other software managers to finish..." 
+		        sleep 0.5
+		        ((i=i+1))
+		    done
+		    sh -c 'apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
+		    i=0
+		    tput sc
+		    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+		        case $(($i % 4)) in
+		            0 ) j="-" ;;
+		            1 ) j="\\" ;;
+		            2 ) j="|" ;;
+		            3 ) j="/" ;;
+		        esac
+		        tput rc
+		        echo -en "\r[$j] Waiting for other software managers to finish..." 
+		        sleep 0.5
+		        ((i=i+1))
+		    done
+		    sh -c 'apt-get -f install -y'
+		    i=0
+		    tput sc
+		    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+		        case $(($i % 4)) in
+		            0 ) j="-" ;;
+		            1 ) j="\\" ;;
+		            2 ) j="|" ;;
+		            3 ) j="/" ;;
+		        esac
+		        tput rc
+		        echo -en "\r[$j] Waiting for other software managers to finish..." 
+		        sleep 0.5
+		        ((i=i+1))
+		    done
+		    sh -c 'apt-get -f install -y'      
+		    if [ $? -eq 0 ]; then
+		        successful=true
+		    else
+		        successful=false
+		    fi
+		    brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+		    borkedpkgnames=""
+		    for i in "$brokenpkgs"; do
+		        if [ "$borkedpkgnames" = "" ]; then
+		            borkedpkgnames="$i"
+		        else
+		            borkedpkgnames="$borkedpkgnames $i"
+		        fi
+		    done
+		    if [ "$borkedpkgnames" = "acpid" ]; then
+		        #ACPID will fail until we specify to have it installed very late in the script, so...
+		        successful=true
+		    fi
+		    tries=$((tries+1))
+		done
+		if [ $successful = true ]; then
+		    echo "
+
+	System Update Error Fix + Overall Update Completed Successfully! Doing last tasks...
+	"
+		else
+		    echo "
+
+	Sadly, the System Update Error Fix + Overall Update Failed. Attempting last tasks, and then you'll have to try to sort out the problems yourself...
+	"
+		fi
+	fi
+	#Begin Theme Recompilation
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' chromeos-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/chromeos-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' macos-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/macos-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' macosx-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/macosx-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' ubuntu-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/ubuntu-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windows7-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/windows7-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windows8-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/windows8-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windows10-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/windows10-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windowsvista-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/windowsvista-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' windowsxp-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/windowsxp-theme.postinst
+	fi
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' yosembiance-theme|grep "install ok installed")
+	if [ ! "" == "$PKG_OK" ]; then
+		/var/lib/dpkg/info/yosembiance-theme.postinst
+	fi
+	#End Theme Recompilation
+	systemctl disable feren-majorupdate
+	rm -f /etc/systemd/system/feren-majorupdate.service
+	systemctl disable feren-majorupdate-autoreboot
+	rm -f /etc/systemd/system/feren-majorupdate-autoreboot.service
+	systemctl enable feren-majorupdate-fix
+	/usr/bin/feren-majorupdate-warning --remove-warning
+	rm -f /usr/bin/feren-majorupdate-bootup /usr/bin/feren-majorupdate-session /usr/bin/feren-majorupdate-autoreboot feren-majorupdate-autoreboot /usr/bin/feren-majorupdate-schedule /usr/bin/feren-majorupdate-warning
+	rm -rf /usr/share/feren-os-majorupdate/autostart-app
+	echo "Removing Checkpoint now the Major Update is finished..."
+	rm -f '/usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint'
+	apt-get -f install -y
+	if [ -f /usr/share/feren-os-majorupdate/cinnamon-installed ]; then
+		yes "" | apt-get -y install cinnamon
+	fi
+	sleep 5
+	/usr/bin/feren-majorupdate-bootup --power &
+	sleep 30
+	killall feren-majorupdate-session
+fi
