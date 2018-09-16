@@ -41,7 +41,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
 done
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
 	echo "[INFO] No Major Update Progress file found, assuming this is a freshly done Major Update..."
-	yes '' | apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+	apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
 	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
 	borkedpkgnames=""
 	for i in "$brokenpkgs"; do
@@ -54,6 +54,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; the
 	if [ "$borkedpkgnames" = "acpid" ]; then
 	        successful=true
 	fi
+	apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
 	if [[ $? -eq 0 ]] || [ $successful = true ]; then
 		echo -en "\rChecking package situation will allow for a Major Update to commence... ${green}[ OK ]${reset}
 	"
