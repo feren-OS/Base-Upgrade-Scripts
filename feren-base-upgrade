@@ -24,7 +24,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
 done
 
 echo "Checking if Packages aren't broken first, and fixing if so."
-yes '' | dpkg --configure -a --force-confdef --force-confold
+dpkg --configure -a --force-confdef --force-confold
 i=0
 tput sc
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -87,7 +87,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     sleep 0.5
     ((i=i+1))
 done
-yes '' | dpkg --configure -a --force-confdef --force-confold
+dpkg --configure -a --force-confdef --force-confold
 
 echo -en "\rChecking that the Major Update process hasn't been blocked by the Developer... [...]" 
 if [ -f /tmp/feren-majorupdate-blockmsg ]; then
@@ -542,7 +542,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		    sleep 0.5
 		    ((i=i+1))
 		done
-		yes '' | dpkg --configure -a
+		dpkg --configure -a
 		tries=0
 		successful=false
 		while [ $tries -lt 100 ] && [ $successful = false ]; do
