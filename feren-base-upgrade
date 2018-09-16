@@ -1,21 +1,9 @@
 #!/bin/bash
+#UpgradeTo=bionic
 
-clear
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
-
-# This feature is temporarily scrapped, for now, until 'wc -l' decides to work with me and produce an actual number based on the lines outputted that are visible... |:/
-#mbpids=$(ps -fC feren-majorupdate-bootup | awk '{if(NR>1)print}' | wc -l)
-#xtpids=$(ps -fC xterm | awk '{if(NR>1)print}' | wc -l)
-#if [[ "$mbpids" -gt 3 ]]; then
-#	echo "Major Updater already running. Exiting. $mbpids"
-#	exit 0
-#fi
-#if [[ "$xtpids" -gt 1 ]]; then
-#	echo "Major Updater already running. Exiting."
-#	exit 0
-#fi
 
 if [ "$1" = "--power" ]; then
 	if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-poweroff ]; then
@@ -36,9 +24,6 @@ if [ -f /usr/share/feren-os/majorupdate-force ]; then
     echo "${red}WARNING: You are running Feren OS Major Update in Force Update Mode, which prevents blocks put in by the Developer from stopping the update from occuring. This is EXTREMELY dangerous.${reset}"
     sleep 10
 fi
-
-echo "Running Feren Maintenance before beginning, to clear out any known issues..."
-feren-maintenance --auto
 
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     case $(($i % 4)) in
@@ -124,27 +109,6 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
 done
 yes '' | dpkg --configure -a --force-confdef --force-confold
 
-echo -en "\rChecking for internet access... [...]" 
-wget -q --tries=10 --timeout=20 --spider http://archive.canonical.com
-if [[ $? -eq 0 ]]; then
-        echo -en "\rChecking for internet access... ${green}[ OK ]${reset}
-"
-else
-        echo -en "\rChecking for internet access... ${red}[ FAIL ]${reset}
-"
-        echo "
-
-${red}Oops, you're not connected to internet, which is needed for the upgrade. Please choose a network from the Network menu when logged in, and then restart to try again.${reset}
-"
-	if [ -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
-		echo "${red}NOTE: Your system could be in an unusable state. If you can't use it, just Restart to try this again.${reset}"
-	fi
-        echo "ENTER- Dismiss and continue booting"
-        read
-        killall feren-majorupdate-session
-        exit 0
-fi
-
 echo -en "\rChecking that the Major Update process hasn't been blocked by the Developer... [...]" 
 if [ -f /tmp/feren-majorupdate-blockmsg ]; then
     rm -f /tmp/feren-majorupdate-blockmsg
@@ -175,41 +139,6 @@ else
             killall feren-majorupdate-session
             exit 0
         fi
-fi
-sftries=0
-sftries=0
-sfsuccess=false
-while [ $sftries -lt 20 ] && [ "$sfsuccess" = false ]; do
-	echo -en "\rChecking for SourceForge access... [...]" 
-	wget https://sourceforge.net/projects/feren-os-repositories/files/stable/arc-icons.deb -O /tmp/sourceforge-test.deb
-	if [[ $(file --mime-type /tmp/sourceforge-test.deb) = *application/vnd.debian.binary-package* ]]; then
-		sfsuccess=true
-		rm -f /tmp/sourceforge-test.deb
-	else
-		sfsuccess=false
-		rm -f /tmp/sourceforge-test.deb
-		sftries=$(($sftries+1))
-	fi
-done
-if [ $sfsuccess = true ]; then
-        echo -en "\rChecking for SourceForge access... ${green}[ OK ]${reset}
-"
-	rm -f /tmp/sourceforge-test.deb
-else
-        echo -en "\rChecking for SourceForge access... ${red}[ FAIL ]${reset}
-"
-	rm -f /tmp/sourceforge-test.deb
-        echo "
-
-${red}Oops, your computer cannot currently connect to SourceForge meaning that the update process is not currently safe in order to update without issues regarding the default theme, and/or System Settings.${reset}
-"
-	if [ -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; then
-		echo "${red}NOTE: Your system could be in an unusable state. If you can't use it, just Restart to try this again.${reset}"
-	fi
-        echo "ENTER- Dismiss and continue booting"
-        read
-        killall feren-majorupdate-session
-        exit 0
 fi
 
 # The Real Upgrade Process Begins
@@ -244,7 +173,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     sleep 0.5
     ((i=i+1))
 done
-yes '' | apt-get install -y mint-common --reinstall
+apt-get install -y mint-common --reinstall
 i=0
 tput sc
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -259,7 +188,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     sleep 0.5
     ((i=i+1))
 done
-yes '' | apt-get upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+apt-get upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
 i=0
 tput sc
 while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -279,7 +208,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ]; the
 	echo "Checkpoint 1 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint1" ]; then
-	yes '' | apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+	apt-get -f install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -294,7 +223,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    sleep 0.5
 	    ((i=i+1))
 	done
-	yes '' | apt-get upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+	apt-get upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint1" ]; then
 	echo "ChkPoint2" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
@@ -777,16 +706,17 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	rm -f /etc/systemd/system/feren-majorupdate-autoreboot.service
 	systemctl enable feren-majorupdate-fix
 	/usr/bin/feren-majorupdate-warning --remove-warning
-	rm -f /usr/bin/feren-majorupdate-bootup /usr/bin/feren-majorupdate-session /usr/bin/feren-majorupdate-autoreboot feren-majorupdate-autoreboot /usr/bin/feren-majorupdate-schedule /usr/bin/feren-majorupdate-warning
+	rm -f /usr/bin/feren-majorupdate-bootup /usr/bin/feren-majorupdate-upgrade /usr/bin/feren-majorupdate-session /usr/bin/feren-majorupdate-autoreboot feren-majorupdate-autoreboot /usr/bin/feren-majorupdate-schedule /usr/bin/feren-majorupdate-warning
 	rm -rf /usr/share/feren-os-majorupdate/autostart-app
 	echo "Removing Checkpoint now the Major Update is finished..."
 	rm -f '/usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint'
 	apt-get -f install -y
 	if [ -f /usr/share/feren-os-majorupdate/cinnamon-installed ]; then
-		yes "" | apt-get -y install cinnamon
+		apt-get -y install cinnamon
+		echo "Making some last changes to fix issues arisen from Feren OS's new-ish package structure..."
+		apt-get -y install feren-themer-cinnamon feren-config
+		killall install-themer-layouts-cinnamon
+		install-themer-layouts-cinnamon
+		echo "We're done. Ubuntu 16.04 base has been updated to 18.04, and Mint 18.3 Repositories have been updated to 19.0."
 	fi
-	sleep 5
-	/usr/bin/feren-majorupdate-bootup --power &
-	sleep 30
-	killall feren-majorupdate-session
 fi
