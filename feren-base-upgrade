@@ -1,9 +1,11 @@
 #!/bin/bash
-#UpgradeTo=bionic
+#UpgradeTo=cosmic
 
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
+
+echo "${red}You are upgrading to a Beta Version of Ubuntu for the Feren OS Base. Not only will this potentially make Feren OS more unstable, but it'll also potentially cause issues relating to the upgrade process, as well.${reset}"
 
 if [ -f /usr/share/feren-os/majorupdate-force ]; then
     echo "${red}WARNING: You are running Feren OS Major Update in Force Update Mode, which prevents blocks put in by the Developer from stopping the update from occuring. This is EXTREMELY dangerous.${reset}"
@@ -214,8 +216,8 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	cd /etc/apt/sources.list.d
 	for file in *.list; do
 	    sed -e 's/^/#/' -i "$file"
-	    sed -i 's/xenial/bionic/g' "$file"
-	    newname=$(echo $file | sed "s/-xenial.list/-bionic.list/g")
+	    sed -i 's/xenial/cosmic/g' "$file"
+	    newname=$(echo $file | sed "s/-xenial.list/-cosmic.list/g")
 	    mv "$file" "$newname"
 	done
 	echo "Re-adding Non-Feren-OS PPAs..."
@@ -228,15 +230,16 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	echo "Checkpoint 3 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
-	echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted universe multiverse
-	deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted universe multiverse
-	deb http://archive.ubuntu.com/ubuntu bionic-backports main restricted universe multiverse
+	echo "deb http://archive.ubuntu.com/ubuntu cosmic main restricted universe multiverse
+	deb http://archive.ubuntu.com/ubuntu cosmic-updates main restricted universe multiverse
+	deb http://archive.ubuntu.com/ubuntu cosmic-backports main restricted universe multiverse
 
-	deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
-	deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list
+	deb http://security.ubuntu.com/ubuntu/ cosmic-security main restricted universe multiverse
+	deb http://archive.canonical.com/ubuntu/ cosmic partner" > /etc/apt/sources.list
 	echo "deb http://packages.linuxmint.com tara main upstream import backport" > /etc/apt/sources.list.d/official-package-repositories.list
 	echo "deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/stable/ ./
-	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/software/ ./" > /etc/apt/sources.list.d/feren-os.list
+	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/software/ ./
+	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/nonlts/ ./" > /etc/apt/sources.list.d/feren-os.list
 
 	sed -i 's/18/19/g' /etc/lsb-release
 	sed -i 's/19.3/19/g' /etc/lsb-release
@@ -248,6 +251,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	sed -i 's/serena/tara/g' /etc/lsb-release
 	sed -i 's/sylvia/tara/g' /etc/lsb-release
 	sed -i 's/xenial/bionic/g' /etc/lsb-release
+	sed -i 's/bionic/cosmic/g' /etc/lsb-release
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
 	echo "ChkPoint4" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
@@ -700,5 +704,6 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	fi
 	echo "We're done. Ubuntu 16.04 base has been updated to 18.04, and Mint 18.3 Repositories have been updated to 19.0."
 	rm -f /usr/bin/feren-majorupdate-upgrade
+	rm -f /usr/share/feren-os-majorupdate/cinnamon-installed
 	exit 0
 fi
