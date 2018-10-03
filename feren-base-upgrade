@@ -294,7 +294,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get -f install -y'
-	dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -331,7 +331,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
-	dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
