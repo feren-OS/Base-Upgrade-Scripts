@@ -705,5 +705,6 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	echo "We're done. Ubuntu 16.04 base has been updated to 18.04, and Mint 18.3 Repositories have been updated to 19.0."
 	rm -f /usr/bin/feren-majorupdate-upgrade
 	rm -f /usr/share/feren-os-majorupdate/cinnamon-installed
+	echo "cosmic" > /etc/feren-os-base
 	exit 0
 fi
