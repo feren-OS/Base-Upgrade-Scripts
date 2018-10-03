@@ -294,6 +294,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get -f install -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -330,6 +337,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get dist-upgrade -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -350,6 +364,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	echo "Checkpoint 7 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint7" ]; then
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	sh -c 'apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y'
 	i=0
 	tput sc
@@ -366,6 +387,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get -f install -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -396,6 +424,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get -f install -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -426,6 +461,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get -f install -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -439,6 +481,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    echo -en "\r[$j] Waiting for other software managers to finish..." 
 	    sleep 0.5
 	    ((i=i+1))
+	done
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
 	done
 	sh -c 'apt-get purge python3-aptdaemon.pkcompat gnome-user-share vino -y'
 	i=0
@@ -475,6 +524,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    #ACPID will fail until we specify to have it installed very late in the script, so...
 	    successful1=true
 	fi
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -490,6 +546,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	    ((i=i+1))
 	done
 	sh -c 'apt-get -f install -y'
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	i=0
 	tput sc
 	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -511,6 +574,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint9" ]; then
 	apt-get -f install -y
+	brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+    borkedpkgnames=""
+	for i in "$brokenpkgs"; do
+	    if echo "$brokenpkgs" | grep "breeze"; then
+		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+		fi
+	done
 	if [[ $? -eq 0 ]] || [ "$successful1" = true ]; then
 		echo -en "\rChecking Update was successful... ${green}[ OK ]${reset}
 	"
@@ -565,6 +635,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		        ((i=i+1))
 		    done
 		    sh -c 'apt-get -f install -y'
+		    brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+            borkedpkgnames=""
+        	for i in "$brokenpkgs"; do
+        	    if echo "$brokenpkgs" | grep "breeze"; then
+        		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+        		fi
+        	done
 		    i=0
 		    tput sc
 		    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
@@ -609,6 +686,13 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		        sleep 0.5
 		        ((i=i+1))
 		    done
+		    brokenpkgs=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 == "half-configured" {print $4}')
+            borkedpkgnames=""
+        	for i in "$brokenpkgs"; do
+        	    if echo "$brokenpkgs" | grep "breeze"; then
+        		    dpkg --purge --force-all plasma-look-and-feel-org-kde-breezedark-desktop
+        		fi
+        	done
 		    sh -c 'apt-get -f install -y'      
 		    if [ $? -eq 0 ]; then
 		        successful=true
