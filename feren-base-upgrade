@@ -5,8 +5,6 @@ red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
 
-echo "${red}You are upgrading to a Beta Version of Ubuntu for the Feren OS Base. Not only will this potentially make Feren OS more unstable, but it'll also potentially cause issues relating to the upgrade process, as well.${reset}"
-
 if [ -f /usr/share/feren-os/majorupdate-force ]; then
     echo "${red}WARNING: You are running Feren OS Major Update in Force Update Mode, which prevents blocks put in by the Developer from stopping the update from occuring. This is EXTREMELY dangerous.${reset}"
     sleep 10
