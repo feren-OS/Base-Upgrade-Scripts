@@ -244,10 +244,10 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	sed -i 's/19.2/19/g' /etc/lsb-release
 	sed -i 's/19.1/19/g' /etc/lsb-release
 	sed -i 's/16.04/18.04/g' /etc/lsb-release
-	sed -i 's/sarah/tara/g' /etc/lsb-release
-	sed -i 's/sonya/tara/g' /etc/lsb-release
-	sed -i 's/serena/tara/g' /etc/lsb-release
-	sed -i 's/sylvia/tara/g' /etc/lsb-release
+	sed -i 's/sarah/tessa/g' /etc/lsb-release
+	sed -i 's/sonya/tessa/g' /etc/lsb-release
+	sed -i 's/serena/tessa/g' /etc/lsb-release
+	sed -i 's/sylvia/tessa/g' /etc/lsb-release
 	sed -i 's/xenial/bionic/g' /etc/lsb-release
 	sed -i 's/bionic/cosmic/g' /etc/lsb-release
 fi
