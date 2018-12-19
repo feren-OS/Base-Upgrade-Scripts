@@ -234,7 +234,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 
 	deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
 	deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list
-	echo "deb http://packages.linuxmint.com tara main upstream import backport" > /etc/apt/sources.list.d/official-package-repositories.list
+	echo "deb http://packages.linuxmint.com tessa main import backport" > /etc/apt/sources.list.d/official-package-repositories.list
 	echo "deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/stable/ ./
 	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/software/ ./" > /etc/apt/sources.list.d/feren-os.list
 
@@ -243,10 +243,10 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	sed -i 's/19.2/19/g' /etc/lsb-release
 	sed -i 's/19.1/19/g' /etc/lsb-release
 	sed -i 's/16.04/18.04/g' /etc/lsb-release
-	sed -i 's/sarah/tara/g' /etc/lsb-release
-	sed -i 's/sonya/tara/g' /etc/lsb-release
-	sed -i 's/serena/tara/g' /etc/lsb-release
-	sed -i 's/sylvia/tara/g' /etc/lsb-release
+	sed -i 's/sarah/tessa/g' /etc/lsb-release
+	sed -i 's/sonya/tessa/g' /etc/lsb-release
+	sed -i 's/serena/tessa/g' /etc/lsb-release
+	sed -i 's/sylvia/tessa/g' /etc/lsb-release
 	sed -i 's/xenial/bionic/g' /etc/lsb-release
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
