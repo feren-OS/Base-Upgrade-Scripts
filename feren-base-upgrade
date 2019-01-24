@@ -706,7 +706,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	echo "Removing Checkpoint now the Major Update is finished..."
 	rm -f '/usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint'
 	apt-get -f install -y
-	apt-get install ferensources-ubuntu -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y
+	apt-get install ferensources-ubuntu -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes
 	if [ -f /usr/share/feren-os-majorupdate/cinnamon-installed ]; then
 		apt-get -y install cinnamon
 		echo "Making some last changes to fix issues arisen from Feren OS's new-ish package structure..."
