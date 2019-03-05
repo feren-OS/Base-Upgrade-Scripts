@@ -235,9 +235,9 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	deb http://security.ubuntu.com/ubuntu/ cosmic-security main restricted universe multiverse
 	deb http://archive.canonical.com/ubuntu/ cosmic partner" > /etc/apt/sources.list
 	echo "deb http://packages.linuxmint.com tessa main import backport" > /etc/apt/sources.list.d/official-package-repositories.list
-	echo "deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/stable/ ./
-	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/software/ ./
-	deb [trusted=yes] http://sourceforge.net/projects/feren-os-repositories/files/nonlts/ ./" > /etc/apt/sources.list.d/feren-os.list
+	echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository/raw/master ./
+deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-software/raw/master ./" > /etc/apt/sources.list.d/feren-os.list
+    echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-nonlts/raw/master ./" > /etc/apt/sources.list.d/feren-os-nonlts.list
 
 	sed -i 's/18/19/g' /etc/lsb-release
 	sed -i 's/19.3/19/g' /etc/lsb-release
