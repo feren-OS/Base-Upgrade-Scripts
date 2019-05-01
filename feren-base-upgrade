@@ -214,7 +214,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	cd /etc/apt/sources.list.d
 	for file in *.list; do
 	    sed -e 's/^/#/' -i "$file"
-	    sed -i 's/xenial/cosmic/g' "$file"
+	    sed -i 's/bionic/cosmic/g' "$file"
 	    newname=$(echo $file | sed "s/-xenial.list/-cosmic.list/g")
 	    mv "$file" "$newname"
 	done
@@ -235,8 +235,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	deb http://security.ubuntu.com/ubuntu/ cosmic-security main restricted universe multiverse
 	deb http://archive.canonical.com/ubuntu/ cosmic partner" > /etc/apt/sources.list
 	echo "deb http://packages.linuxmint.com tessa main import backport" > /etc/apt/sources.list.d/official-package-repositories.list
-	echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository/raw/master ./
-deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-software/raw/master ./" > /etc/apt/sources.list.d/feren-os.list
+	echo "deb https://gitlab.com/feren-os/feren-repositories/raw/master/repositories stable main software" > /etc/apt/sources.list.d/feren-os.list
     echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-nonlts/raw/master ./" > /etc/apt/sources.list.d/feren-os-nonlts.list
 
 	sed -i 's/18/19/g' /etc/lsb-release
@@ -244,6 +243,7 @@ deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-software/raw/mast
 	sed -i 's/19.2/19/g' /etc/lsb-release
 	sed -i 's/19.1/19/g' /etc/lsb-release
 	sed -i 's/16.04/18.04/g' /etc/lsb-release
+	sed -i 's/18.04/18.10/g' /etc/lsb-release
 	sed -i 's/tara/tessa/g' /etc/lsb-release
 	sed -i 's/sarah/tessa/g' /etc/lsb-release
 	sed -i 's/sonya/tessa/g' /etc/lsb-release
@@ -714,7 +714,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		killall install-themer-layouts-cinnamon
 		install-themer-layouts-cinnamon
 	fi
-	echo "We're done. Ubuntu 16.04 base has been updated to 18.04, and Mint 18.3 Repositories have been updated to 19.0."
+	echo "We're done. Ubuntu 18.04 base has been updated to 18.10."
 	rm -f /usr/bin/feren-majorupdate-upgrade
 	rm -f /usr/share/feren-os-majorupdate/cinnamon-installed
 	echo "cosmic" > /etc/feren-os-base
