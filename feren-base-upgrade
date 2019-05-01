@@ -235,6 +235,10 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
 	deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list
 	echo "deb http://packages.linuxmint.com tessa main import backport" > /etc/apt/sources.list.d/official-package-repositories.list
+	cd /tmp
+	wget https://gitlab.com/feren-os/feren-repositories/raw/master/repositories/pool/main/f/feren-repository-keyring/feren-repository-keyring_2019.03.0.0.0_all.deb
+    dpkg -i feren-repository-keyring_*.deb
+    rm -f feren-repository-keyring_*.deb
 	echo "deb https://gitlab.com/feren-os/feren-repositories/raw/master/repositories stable main software" > /etc/apt/sources.list.d/feren-os.list
 
 	sed -i 's/18/19/g' /etc/lsb-release
