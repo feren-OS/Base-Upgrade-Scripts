@@ -235,8 +235,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
 	deb http://archive.canonical.com/ubuntu/ bionic partner" > /etc/apt/sources.list
 	echo "deb http://packages.linuxmint.com tessa main import backport" > /etc/apt/sources.list.d/official-package-repositories.list
-	echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository/raw/master ./
-deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-software/raw/master ./" > /etc/apt/sources.list.d/feren-os.list
+	echo "deb https://gitlab.com/feren-os/feren-repositories/raw/master/repositories stable main software" > /etc/apt/sources.list.d/feren-os.list
 
 	sed -i 's/18/19/g' /etc/lsb-release
 	sed -i 's/19.3/19/g' /etc/lsb-release
