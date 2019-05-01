@@ -1,5 +1,5 @@
 #!/bin/bash
-#UpgradeTo=cosmic
+#UpgradeTo=disco
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -214,8 +214,8 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	cd /etc/apt/sources.list.d
 	for file in *.list; do
 	    sed -e 's/^/#/' -i "$file"
-	    sed -i 's/xenial/cosmic/g' "$file"
-	    newname=$(echo $file | sed "s/-xenial.list/-cosmic.list/g")
+	    sed -i 's/cosmic/disco/g' "$file"
+	    newname=$(echo $file | sed "s/-cosmic.list/-disco.list/g")
 	    mv "$file" "$newname"
 	done
 	echo "Re-adding Non-Feren-OS PPAs..."
@@ -228,29 +228,28 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	echo "Checkpoint 3 Reached. If the Major Updater gets turned off prematurely, it'll be resumed from here..."
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
-	echo "deb http://archive.ubuntu.com/ubuntu cosmic main restricted universe multiverse
-	deb http://archive.ubuntu.com/ubuntu cosmic-updates main restricted universe multiverse
-	deb http://archive.ubuntu.com/ubuntu cosmic-backports main restricted universe multiverse
+	echo "deb http://archive.ubuntu.com/ubuntu disco main restricted universe multiverse
+	deb http://archive.ubuntu.com/ubuntu disco-updates main restricted universe multiverse
+	deb http://archive.ubuntu.com/ubuntu disco-backports main restricted universe multiverse
 
-	deb http://security.ubuntu.com/ubuntu/ cosmic-security main restricted universe multiverse
-	deb http://archive.canonical.com/ubuntu/ cosmic partner" > /etc/apt/sources.list
+	deb http://security.ubuntu.com/ubuntu/ disco-security main restricted universe multiverse
+	deb http://archive.canonical.com/ubuntu/ disco partner" > /etc/apt/sources.list
 	echo "deb http://packages.linuxmint.com tessa main import backport" > /etc/apt/sources.list.d/official-package-repositories.list
-	echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository/raw/master ./
-deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-software/raw/master ./" > /etc/apt/sources.list.d/feren-os.list
+	echo "deb https://gitlab.com/feren-os/feren-repositories/raw/master/repositories stable main software" > /etc/apt/sources.list.d/feren-os.list
     echo "deb [trusted=yes] https://github.com/feren-OS/Feren-Repository-nonlts/raw/master ./" > /etc/apt/sources.list.d/feren-os-nonlts.list
 
 	sed -i 's/18/19/g' /etc/lsb-release
 	sed -i 's/19.3/19/g' /etc/lsb-release
 	sed -i 's/19.2/19/g' /etc/lsb-release
 	sed -i 's/19.1/19/g' /etc/lsb-release
-	sed -i 's/16.04/18.04/g' /etc/lsb-release
+	sed -i 's/18.10/19.04/g' /etc/lsb-release
 	sed -i 's/tara/tessa/g' /etc/lsb-release
 	sed -i 's/sarah/tessa/g' /etc/lsb-release
 	sed -i 's/sonya/tessa/g' /etc/lsb-release
 	sed -i 's/serena/tessa/g' /etc/lsb-release
 	sed -i 's/sylvia/tessa/g' /etc/lsb-release
-	sed -i 's/xenial/bionic/g' /etc/lsb-release
 	sed -i 's/bionic/cosmic/g' /etc/lsb-release
+	sed -i 's/cosmic/disco/g' /etc/lsb-release
 fi
 if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [ "$(cat /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint)" = "ChkPoint3" ]; then
 	echo "ChkPoint4" > /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint
@@ -714,9 +713,9 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		killall install-themer-layouts-cinnamon
 		install-themer-layouts-cinnamon
 	fi
-	echo "We're done. Ubuntu 16.04 base has been updated to 18.04, and Mint 18.3 Repositories have been updated to 19.0."
+	echo "We're done. Ubuntu 18.10 base has been updated to 19.04."
 	rm -f /usr/bin/feren-majorupdate-upgrade
 	rm -f /usr/share/feren-os-majorupdate/cinnamon-installed
-	echo "cosmic" > /etc/feren-os-base
+	echo "disco" > /etc/feren-os-base
 	exit 0
 fi
