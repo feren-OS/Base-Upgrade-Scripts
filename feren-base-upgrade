@@ -214,6 +214,7 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 	cd /etc/apt/sources.list.d
 	for file in *.list; do
 	    sed -e 's/^/#/' -i "$file"
+	    sed -i 's/bionic/cosmic/g' "$file"
 	    sed -i 's/cosmic/disco/g' "$file"
 	    newname=$(echo $file | sed "s/-cosmic.list/-disco.list/g")
 	    mv "$file" "$newname"
