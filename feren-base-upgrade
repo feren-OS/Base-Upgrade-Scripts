@@ -695,14 +695,6 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		/var/lib/dpkg/info/yosembiance-theme.postinst
 	fi
 	#End Theme Recompilation
-	systemctl disable feren-majorupdate
-	rm -f /etc/systemd/system/feren-majorupdate.service
-	systemctl disable feren-majorupdate-autoreboot
-	rm -f /etc/systemd/system/feren-majorupdate-autoreboot.service
-	systemctl enable feren-majorupdate-fix
-	/usr/bin/feren-majorupdate-warning --remove-warning
-	rm -f /usr/bin/feren-majorupdate-bootup /usr/bin/feren-majorupdate-upgrade /usr/bin/feren-majorupdate-session /usr/bin/feren-majorupdate-autoreboot feren-majorupdate-autoreboot /usr/bin/feren-majorupdate-schedule /usr/bin/feren-majorupdate-warning
-	rm -rf /usr/share/feren-os-majorupdate/autostart-app
 	echo "Removing Checkpoint now the Major Update is finished..."
 	rm -f '/usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint'
 	apt-get -f install -y
@@ -715,8 +707,16 @@ if [ ! -f /usr/share/feren-os-majorupdate/majorupdate-progress-checkpoint ] || [
 		install-themer-layouts-cinnamon
 	fi
 	echo "We're done. Ubuntu 18.04 base has been updated to 18.10."
-	rm -f /usr/bin/feren-majorupdate-upgrade
+	#rm -f /usr/bin/feren-majorupdate-upgrade
 	rm -f /usr/share/feren-os-majorupdate/cinnamon-installed
 	echo "cosmic" > /etc/feren-os-base
+	#systemctl disable feren-majorupdate
+	#rm -f /etc/systemd/system/feren-majorupdate.service
+	#systemctl disable feren-majorupdate-autoreboot
+	#rm -f /etc/systemd/system/feren-majorupdate-autoreboot.service
+	#systemctl enable feren-majorupdate-fix
+	#/usr/bin/feren-majorupdate-warning --remove-warning
+	#rm -f /usr/bin/feren-majorupdate-bootup /usr/bin/feren-majorupdate-upgrade /usr/bin/feren-majorupdate-session /usr/bin/feren-majorupdate-autoreboot feren-majorupdate-autoreboot /usr/bin/feren-majorupdate-schedule /usr/bin/feren-majorupdate-warning
+	#rm -rf /usr/share/feren-os-majorupdate/autostart-app
 	exit 0
 fi
